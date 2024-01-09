@@ -67,16 +67,32 @@ const Persons = (props) => {
   );
 };
 
+const Notification = ({ message }) => {
+  if (message === null) {
+    return null;
+  }
+  return <div className="notification">{message}</div>;
+};
+
+const ErrorNotification = ({ message }) => {
+  if (message === null) {
+    return null;
+  }
+  return <div className="error">{message}</div>;
+};
+
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [filterElement, setFilterElement] = useState("");
   const [showAll, setShowAll] = useState(true);
+  const [newMessage, setNewMessage] = useState(null);
+  const [newError, setNewError] = useState(null);
 
   useEffect(() => {
-    peopleService.getAll().then(initialPeople => {
-      setPersons(initialPeople)
+    peopleService.getAll().then((initialPeople) => {
+      setPersons(initialPeople);
     });
   }, []);
 
@@ -110,24 +126,39 @@ const App = () => {
     var samePerson = null;
     for (const [key, value] of Object.entries(persons)) {
       if (newName == value.name) {
-        samePerson = value
+        samePerson = value;
         sameIndex = true;
         break;
       }
     }
 
     if (sameIndex) {
-      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)){
-        peopleService.update(samePerson.id, personObject)
-        .then(response => {
-          setPersons(persons.map(person => person.id === samePerson.id ? personObject : person))
-        })
+      if (
+        window.confirm(
+          `${newName} is already added to phonebook, replace the old number with a new one?`
+        )
+      ) {
+        peopleService.update(samePerson.id, personObject).then((response) => {
+          setPersons(
+            persons.map((person) =>
+              person.id === samePerson.id ? personObject : person
+            )
+          );
+          setNewMessage(`${personObject.name} has been added!`);
+          setTimeout(() => {
+            setNewMessage(null);
+          }, 5000);
+        });
       }
       setNewName("");
       setNewNumber("");
     } else {
       peopleService.create(personObject).then((returnedPeople) => {
         setPersons(persons.concat(returnedPeople));
+        setNewMessage(`${personObject.name} has been added!`);
+        setTimeout(() => {
+          setNewMessage(null);
+        }, 5000);
         setNewName("");
         setNewNumber("");
       });
@@ -142,14 +173,27 @@ const App = () => {
       peopleService.deleteElement(id).then(() => {
         console.log(persons);
         setPersons(persons.filter((person) => person.id !== id));
-      });
+      })
+      .catch(error => {
+        console.log('fail!')
+        console.log(error)
+        setNewError(
+          `Information on ${name} has already been removed from the server`
+        )
+        setPersons(persons.filter((person) => person.name !== name));
+
+        setTimeout(() => {
+          setNewError(null)
+        }, 5000)
+      })
     }
   };
 
   return (
     <div>
       <h2>Phonebook</h2>
-
+      <Notification message={newMessage} />
+      <ErrorNotification message={newError} />
       <Filter
         showAll={showAll}
         setShowAll={setShowAll}
