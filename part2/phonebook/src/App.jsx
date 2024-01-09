@@ -107,16 +107,22 @@ const App = () => {
       number: newNumber,
     };
     var sameIndex = false;
+    var samePerson = null;
     for (const [key, value] of Object.entries(persons)) {
       if (newName == value.name) {
-        console.log(value);
+        samePerson = value
         sameIndex = true;
         break;
       }
     }
 
     if (sameIndex) {
-      alert(`${newName} is already added to phonebook`);
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)){
+        peopleService.update(samePerson.id, personObject)
+        .then(response => {
+          setPersons(persons.map(person => person.id === samePerson.id ? personObject : person))
+        })
+      }
       setNewName("");
       setNewNumber("");
     } else {
