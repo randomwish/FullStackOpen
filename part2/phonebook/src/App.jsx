@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { useState, useEffect } from "react";
+import peopleService from "./services/people";
 
 const Filter = (props) => {
   const { showAll, setShowAll, filterElement, handleFilterChange } = props;
@@ -36,16 +36,30 @@ const PersonForm = (props) => {
     </>
   );
 };
-
+const DeleteButton = (props) => {
+  const { id, deleteElement, name } = props;
+  return (
+    <>
+      <button onClick={() => deleteElement(id, name)}>
+        Delete phone number
+      </button>
+    </>
+  );
+};
 const Persons = (props) => {
-  const { namesToShow } = props;
+  const { namesToShow, deleteElement } = props;
   return (
     <>
       <ul>
         {namesToShow.map((person) => (
           <p key={person.name}>
             {" "}
-            {person.name} {person.number}
+            {person.name} {person.number}{" "}
+            <DeleteButton
+              deleteElement={deleteElement}
+              name={person.name}
+              id={person.id}
+            />
           </p>
         ))}
       </ul>
@@ -54,29 +68,18 @@ const Persons = (props) => {
 };
 
 const App = () => {
-  // const [persons, setPersons] = useState([
-  //   { name: "Arto Hellas", number: "040-123456", id: 1 },
-  //   { name: "Ada Lovelace", number: "39-44-5323523", id: 2 },
-  //   { name: "Dan Abramov", number: "12-43-234345", id: 3 },
-  //   { name: "Mary Poppendieck", number: "39-23-6423122", id: 4 },
-  // ]);
-
-  const [persons, setPersons] = useState([])
+  const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
-  const [newID, setNewID] = useState(persons.length + 1);
   const [filterElement, setFilterElement] = useState("");
   const [showAll, setShowAll] = useState(true);
 
   useEffect(() => {
-    axios.get('http://localhost:3001/persons')
-    .then(response => {
-        const persons = response.data
-        console.log(persons)
-        setPersons(persons)
-    })
-  },[])
-  
+    peopleService.getAll().then(initialPeople => {
+      setPersons(initialPeople)
+    });
+  }, []);
+
   const handleNameChange = (event) => {
     setNewName(event.target.value);
   };
@@ -102,12 +105,9 @@ const App = () => {
     const personObject = {
       name: newName,
       number: newNumber,
-      id: newID,
     };
     var sameIndex = false;
     for (const [key, value] of Object.entries(persons)) {
-      console.log(value.name);
-      console.log(key);
       if (newName == value.name) {
         console.log(value);
         sameIndex = true;
@@ -120,10 +120,23 @@ const App = () => {
       setNewName("");
       setNewNumber("");
     } else {
-      setPersons(persons.concat(personObject));
-      setNewID(newID + 1);
-      setNewName("");
-      setNewNumber("");
+      peopleService.create(personObject).then((returnedPeople) => {
+        setPersons(persons.concat(returnedPeople));
+        setNewName("");
+        setNewNumber("");
+      });
+    }
+  };
+
+  const deleteElement = (id, name) => {
+    console.log(id);
+    console.log(persons);
+    console.log(name);
+    if (window.confirm(`Do you want to remove ${name} ?`)) {
+      peopleService.deleteElement(id).then(() => {
+        console.log(persons);
+        setPersons(persons.filter((person) => person.id !== id));
+      });
     }
   };
 
@@ -148,7 +161,7 @@ const App = () => {
       />
 
       <h2>Numbers</h2>
-      <Persons namesToShow={namesToShow} />
+      <Persons namesToShow={namesToShow} deleteElement={deleteElement} />
     </div>
   );
 };
